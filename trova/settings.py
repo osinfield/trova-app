@@ -11,22 +11,37 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import json
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+with open(os.path.join(BASE_DIR, 'config.json')) as f:
+    CONFIGS = json.loads(f.read())
+
+def get_env_var(setting, configs=CONFIGS):
+    try:
+        val = configs[setting]
+        if val == 'True':
+            val = True
+        elif val == 'False':
+            val = False
+        return val
+    except KeyError:
+        error_msg = "ImproperlyConfigured: Set {0} environment variable".format(setting)
+        raise ImproperlyConfigured(error_msg)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'ovv2#xe048=nj0ls$9cov@8$81hr_1w&iq6s3yw*-h_uhrty#$'
+SECRET_KEY = get_env_var("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -51,10 +66,20 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'trova.urls'
 
+# Session config
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
+# Caching Config
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+}
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [(os.path.join(BASE_DIR, 'templates'))],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -76,9 +101,10 @@ WSGI_APPLICATION = 'trova.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'db', 'db.sqlite3'),
     }
 }
+
 
 
 # Password validation
@@ -118,3 +144,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
